@@ -1,11 +1,10 @@
 CACHE MANIFEST
-# rev 20260922-ps-torghabeh-ui
+# rev 20260922-ps-torghabeh-ui-fix1
 
 index.html
 jb.html
 style.css
 logo.png
-logo_raw.png
 jb.js
 core.js
 mem.js
