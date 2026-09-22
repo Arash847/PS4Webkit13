@@ -1,149 +1,126 @@
 <!doctype html>
 <html lang="en" manifest="cache.appcache">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>RAW GAME x MANSOOR0X</title>
-    <style>
-      html,
-      body {
-        margin: 0;
-        padding: 0;
-        min-height: 100%;
-        background: #0b0d10;
-        color: #c8ced8;
-        font:
-          15px/1.45 "Segoe UI",
-          system-ui,
-          sans-serif;
-      }
-      #brand {
-        text-align: center;
-        padding: 8px 10px;
-        background: #0e1116;
-        border-bottom: 1px solid #1e2732;
-      }
-      #brand img {
-        width: 28px;
-        height: 28px;
-        margin-right: 8px;
-        border-radius: 50%;
-        vertical-align: middle;
-      }
-      #brand b {
-        font-size: 15px;
-        font-weight: 700;
-        letter-spacing: 0.14em;
-        color: #e6ebf2;
-        vertical-align: middle;
-      }
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PS4 WebKit Jailbreak</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  /* Kept for ?log=1 debug mode only. The card UI above is pixel-identical
+     to the reference project; this block only affects body.log. */
+  #logwrap { display: none; }
+  body.log .card { display: none; }
+  body.log { text-align: left; }
+  body.log #logwrap { display: block; padding: 14px 18px; }
+  body.log #state { display: block; font-size: 22px; font-weight: 700; margin: 0 0 8px; color: #e8ecf4; }
+  body.log #out {
+    display: block; white-space: pre-wrap;
+    font: 12px/1.45 Consolas, monospace;
+    background: #11151b; border: 1px solid #1e2732; border-radius: 5px;
+    padding: 10px 12px; height: calc(100vh - 141px); overflow-y: auto; color: #c8ced8;
+  }
+  body.log #out .ok { color: #7fd0a0; }
+  body.log #out .bad { color: #d08a7f; }
+  body.log #out .warn { color: #d8c07f; }
+  #state, #out { display: none; }
+</style>
+</head>
+<body>
+<main class="card">
+    <img class="logo" src="logo.png" alt="GoldHEN">
+    <div class="eyebrow">PS Torghabeh</div>
+    <h1 class="title">PS4 WebKit Jailbreak</h1>
+    <div class="subtitle">FIRMWARE 13.02 &mdash; 13.52</div>
+    <div class="fw-badge" id="fwbadge">GOLDHEN</div>
+    <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-info">
+            <span id="progress-label">Initializing...</span>
+            <span id="progress-pct"></span>
+        </div>
+        <div class="progress-track">
+            <div class="progress-fill" id="progress-fill"></div>
+        </div>
+    </div>
+    <h1 id="msgs">Loading GoldHEN... Please Wait</h1>
+</main>
+<div id="logwrap">
+  <div id="state"></div>
+  <div id="out"></div>
+</div>
+<script>
+/* Card UI bridge (display only -- the exploit chain in jb.js is untouched).
+   jb.js signals only via document.body.className ("done"/"fail", or "log"
+   for ?log=1), so this mirrors the reference project's fake-until-done
+   progress bar: creep to 90% while running, snap to 100% on completion. */
+(function () {
+    function $(id) { return document.getElementById(id); }
 
-      /* running: a spinner under the brand. jb.js sets body.done / body.fail / body.log. */
-      #spin {
-        position: fixed;
-        top: calc(50% + 20px);
-        left: 50%;
-        width: 46px;
-        height: 46px;
-        margin: -23px 0 0 -23px;
-        border: 4px solid #1e2732;
-        border-top-color: #7fd0a0;
-        border-radius: 50%;
-        animation: spin 0.9s linear infinite;
-      }
-      @keyframes spin {
-        to {
-          transform: rotate(360deg);
+    var ua = navigator.userAgent.match(/PlayStation 4[ \/]([\d.]+)/i);
+    if (ua) {
+        $("fwbadge").innerHTML = "FW " + ua[1] + " &middot; GOLDHEN";
+    }
+
+    // ?log=1 debug mode: jb.js owns #state/#out, hide the card via CSS.
+    if (location.search.indexOf("log=1") !== -1) {
+        var w = $("progress-wrap");
+        if (w) { w.style.display = "none"; }
+        return;
+    }
+
+    var pct = 0;
+    var fill = $("progress-fill");
+    var num = $("progress-pct");
+    var label = $("progress-label");
+    var msgs = $("msgs");
+    var stopped = false;
+
+    function render() {
+        fill.style.width = pct + "%";
+        num.innerHTML = pct + "%";
+    }
+
+    var timer = setInterval(function () {
+        if (stopped) { clearInterval(timer); return; }
+        var cls = document.body ? document.body.className : "";
+        if (cls === "done") {
+            fill.className = "progress-fill success";
+            fill.style.width = "100%";
+            num.innerHTML = "100%";
+            label.innerHTML = "Done!";
+            msgs.innerHTML = "GoldHEN Loaded &#10004;";
+            stopped = true;
+            clearInterval(timer);
+            return;
         }
-      }
-      #msg {
-        position: fixed;
-        top: 50%;
-        left: 0;
-        right: 0;
-        transform: translateY(-50%);
-        text-align: center;
-        font-size: 16px;
-        letter-spacing: 0.5px;
-        display: none;
-      }
-      #wrap {
-        padding: 0;
-      }
-      #state,
-      #out {
-        display: none;
-      }
+        if (cls === "fail") {
+            fill.className = "progress-fill error";
+            fill.style.width = "100%";
+            num.innerHTML = "";
+            label.innerHTML = "Error";
+            msgs.innerHTML = "Jailbreak Failed -- restart your console and retry";
+            stopped = true;
+            clearInterval(timer);
+            return;
+        }
+        if (pct < 90) {
+            pct += 3;
+            render();
+        }
+    }, 400);
 
-      body.done #spin {
-        display: none;
-      }
-      body.fail #spin {
-        display: none;
-      }
-      body.fail #msg {
-        display: block;
-      }
-
-      /* ?log=1 -- the full step log, styled like the landing. */
-      body.log #spin,
-      body.log #msg {
-        display: none;
-      }
-      body.log #wrap {
-        padding: 14px 18px;
-      }
-      body.log #state {
-        display: block;
-        font-size: 22px;
-        font-weight: 700;
-        margin: 0 0 8px;
-      }
-      body.log #out {
-        display: block;
-        white-space: pre-wrap;
-        font:
-          12px/1.45 Consolas,
-          monospace;
-        background: #11151b;
-        border: 1px solid #1e2732;
-        border-radius: 5px;
-        padding: 10px 12px;
-        height: calc(100vh - 141px);
-        overflow-y: auto;
-      }
-      .ok {
-        color: #7fd0a0;
-      }
-      .bad {
-        color: #d08a7f;
-      }
-      .warn {
-        color: #d8c07f;
-      }
-      .safe {
-        color: #7fd0a0;
-      }
-      .danger {
-        color: #d08a7f;
-      }
-      code {
-        color: #9fb3d0;
-      }
-    </style>
-  </head>
-  <body>
-    <div id="brand">
-      <b>RAW GAME X MANSOOR0X</b>
-    </div>
-    <div id="spin"></div>
-    <div id="msg">Restart your console</div>
-    <div id="wrap">
-      <div id="state"></div>
-      <div id="out"></div>
-    </div>
-    <script type="module">
-      import "./jb.js?v=10";
-    </script>
-  </body>
+    if (window.MutationObserver && document.body) {
+        new MutationObserver(function () {
+            if (stopped) return;
+            var cls = document.body.className;
+            if (cls === "done" || cls === "fail") {
+                // Let the interval snap the UI on its next tick.
+            }
+        }).observe(document.body, { attributes: true, attributeFilter: ["class"] });
+    }
+})();
+</script>
+<script type="module">
+  import "./jb.js?v=10";
+</script>
+</body>
 </html>
